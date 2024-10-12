@@ -1,0 +1,342 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// Define a structure for donors
+typedef struct Donor {
+    char name[50];
+    char bloodType[5];
+    int quantity;
+    struct Donor *next;
+} Donor;
+
+// Define a structure for blood type tree node
+typedef struct BloodTypeNode {
+    char bloodType[5];
+    int totalQuantity;
+    struct BloodTypeNode *left, *right;
+} BloodTypeNode;
+
+// Predefined donors
+Donor *predefinedDonors[10] = {
+    &(Donor){"John", "A+", 2, NULL},
+    &(Donor){"Abi", "O+", 3, NULL},
+    &(Donor){"Preethi", "B+", 4, NULL},
+    &(Donor){"Akash", "AB+", 5, NULL},
+    &(Donor){"Nina", "A-", 6, NULL},
+    &(Donor){"Mohan", "O-", 2, NULL},
+    &(Donor){"Sita", "B-", 3, NULL},
+    &(Donor){"Ravi", "AB-", 4, NULL},
+    &(Donor){"Lily", "A+", 5, NULL},
+    &(Donor){"Max", "O+", 6, NULL}
+};
+// Global linked list head
+Donor *head = NULL;
+
+// Global root for blood type tree
+BloodTypeNode *root = NULL;
+
+// Function prototypes
+void addPredefinedDonors();
+void addDonor(char name[], char bloodType[], int quantity);
+void displayDonors();
+void addBloodType(char bloodType[], int quantity);
+BloodTypeNode* insertBloodType(BloodTypeNode *node, char bloodType[], int quantity);
+void displayBloodTypes(BloodTypeNode *node);
+int login();
+void logout();
+void distributeBlood(char bloodType[], int quantity);
+
+int main() {
+    int choice;
+    char name[50], bloodType[5];
+    int quantity;
+    int loggedIn = 0;
+
+    addPredefinedDonors();
+
+    while (1) {
+        if (!loggedIn) {
+            printf("Login\n");
+            loggedIn = login();
+            if (!loggedIn) {
+                printf("Invalid credentials, try again.\n");
+                continue;
+            }
+        }
+
+        printf("\nBlood Bank Management System\n");
+        printf("1. Add Donation\n");
+        printf("2. Display Donors\n");
+        printf("3. Display Blood Types and Storage Quantities\n");
+        printf("4. Distribute Blood\n");
+        printf("5. Logout\n");
+        printf("6. Exit\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+        getchar();  // Clear newline character from buffer
+
+        switch (choice) {
+            case 1:
+                printf("Enter Donor Name: ");
+                fgets(name, sizeof(name), stdin);
+                name[strcspn(name, "\n")] = 0; // Remove newline character
+                printf("Enter Blood Type: ");
+                fgets(bloodType, sizeof(bloodType), stdin);
+                bloodType[strcspn(bloodType, "\n")] = 0; // Remove newline character
+                printf("Enter Quantity Donated: ");
+                scanf("%d", &quantity);
+                addDonor(name, bloodType, quantity);
+                break;
+            case 2:
+                displayDonors();
+                break;
+            case 3:
+                displayBloodTypes(root);
+                break;
+            case 4:
+                printf("Enter Blood Type for Distribution: ");
+                fgets(bloodType, sizeof(bloodType), stdin);
+                bloodType[strcspn(bloodType, "\n")] = 0; // Remove newline character
+                printf("Enter Quantity to Distribute: ");
+                scanf("%d", &quantity);
+                distributeBlood(bloodType, quantity);
+                break;
+            case 5:
+                logout();
+                loggedIn = 0;
+                break;
+            case 6:
+                exit(0);
+            default:
+                printf("Invalid choice, try again.\n");
+        }
+    }
+    return 0;
+}
+void addPredefinedDonors() {
+    for (int i = 0; i < 10; i++) {
+        addDonor(predefinedDonors[i]->name, predefinedDonors[i]->bloodType, predefinedDonors[i]->quantity);
+    }
+}
+
+void addDonor(char name[], char bloodType[], int quantity) {
+    Donor *newDonor = (Donor *)malloc(sizeof(Donor));
+    strcpy(newDonor->name, name);
+    strcpy(newDonor->bloodType, bloodType);
+    newDonor->quantity = quantity;
+    newDonor->next = head;
+    head = newDonor;
+
+    // Add to blood type tree
+    addBloodType(bloodType, quantity);
+}
+
+void displayDonors() {
+    Donor *current = head;
+    if (current == NULL) {
+        printf("No donors available.\n");
+        return;
+    }
+    printf("Donors List:\n");
+    while (current != NULL) {
+        printf("Name: %s, Blood Type: %s, Quantity Donated: %d units\n", current->name, current->bloodType, current->quantity);
+        current = current->next;
+    }
+}
+void addBloodType(char bloodType[], int quantity) {
+    root = insertBloodType(root, bloodType, quantity);
+}
+
+BloodTypeNode* insertBloodType(BloodTypeNode *node, char bloodType[], int quantity) {
+    if (node == NULL) {
+        BloodTypeNode *newNode = (BloodTypeNode *)malloc(sizeof(BloodTypeNode));
+        strcpy(newNode->bloodType, bloodType);
+        newNode->totalQuantity = quantity;
+        newNode->left = newNode->right = NULL;
+        return newNode;
+    }
+
+    if (strcmp(bloodType, node->bloodType) < 0) {
+        node->left = insertBloodType(node->left, bloodType, quantity);
+    } else if (strcmp(bloodType, node->bloodType) > 0) {
+        node->right = insertBloodType(node->right, bloodType, quantity);
+    } else {
+        node->totalQuantity += quantity;
+    }
+    return node;
+}
+
+void displayBloodTypes(BloodTypeNode *node) {
+    if (node == NULL) {
+        return;
+    }
+    displayBloodTypes(node->left);
+    printf("Blood Type: %s, Storage Quantity: %d units\n", node->bloodType, node->totalQuantity);
+    displayBloodTypes(node->right);
+}
+
+int login() {
+    char username[20], password[20];
+    printf("Username: ");
+    scanf("%s", username);
+    printf("Password: ");
+    scanf("%s", password);
+
+    if (strcmp(username, "admin") == 0 && strcmp(password, "123") == 0) {
+        printf("Login successful!\n");
+        return 1;
+    }
+    return 0;
+}
+
+void logout() {
+    printf("Logged out successfully!\n");
+}
+void distributeBlood(char bloodType[], int quantity) {
+    BloodTypeNode *current = root;
+    while (current != NULL) {
+        if (strcmp(bloodType, current->bloodType) == 0) {
+            if (current->totalQuantity >= quantity) {
+                current->totalQuantity -= quantity;
+                printf("Distributed %d units of %s blood.\n", quantity, bloodType);
+            } else {
+                printf("Not enough %s blood available. Available quantity: %d units.\n", bloodType, current->totalQuantity);
+            }
+            return;
+        } else if (strcmp(bloodType, current->bloodType) < 0) {
+            current = current->left;
+        } else {
+            current = current->right;
+        }
+    }
+    printf("Blood type %s not found.\n", bloodType);
+}
+//output
+Login
+Username: admin
+Password: 123
+Login successful!
+
+Blood Bank Management System
+1. Add Donation
+2. Display Donors
+3. Display Blood Types and Storage Quantities
+4. Distribute Blood
+5. Logout
+6. Exit
+Enter your choice: 1
+Enter Donor Name: Akash
+Enter Blood Type: A+ve
+Enter Quantity Donated: 1 unit
+
+Blood Bank Management System
+1. Add Donation
+2. Display Donors
+3. Display Blood Types and Storage Quantities
+4. Distribute Blood
+5. Logout
+6. Exit
+Enter your choice: 1
+Enter Donor Name: Harish
+Enter Blood Type: O+ve
+Enter Quantity Donated: 2 unit
+Blood Bank Management System
+1. Add Donation
+2. Display Donors
+3. Display Blood Types and Storage Quantities
+4. Distribute Blood
+5. Logout
+6. Exit
+Enter your choice: 2
+Donors List:
+Name: nit, Blood Type: , Quantity Donated: 9 units
+Name: Harish, Blood Type: O+ve, Quantity Donated: 2 units
+Name: nit, Blood Type: 1, Quantity Donated: 1 units
+Name: Akash, Blood Type: A+ve, Quantity Donated: 1 units
+Name: Max, Blood Type: O+, Quantity Donated: 6 units
+Name: Lily, Blood Type: A+, Quantity Donated: 5 units
+Name: Ravi, Blood Type: AB-, Quantity Donated: 4 units
+Name: Sita, Blood Type: B-, Quantity Donated: 3 units
+Name: Mohan, Blood Type: O-, Quantity Donated: 2 units
+Name: Nina, Blood Type: A-, Quantity Donated: 6 units
+Name: Akash, Blood Type: AB+, Quantity Donated: 5 units
+Name: Preethi, Blood Type: B+, Quantity Donated: 4 units
+Name: Abi, Blood Type: O+, Quantity Donated: 3 units
+Name: John, Blood Type: A+, Quantity Donated: 2 units
+
+Blood Bank Management System
+1. Add Donation
+2. Display Donors
+3. Display Blood Types and Storage Quantities
+4. Distribute Blood
+5. Logout
+6. Exit
+Enter your choice: 3
+Blood Type: , Storage Quantity: 9 units
+Blood Type: 1, Storage Quantity: 1 units
+Blood Type: A+, Storage Quantity: 7 units
+Blood Type: A+ve, Storage Quantity: 1 units
+Blood Type: A-, Storage Quantity: 6 units
+Blood Type: AB+, Storage Quantity: 5 units
+Blood Type: AB-, Storage Quantity: 4 units
+Blood Type: B+, Storage Quantity: 4 units
+Blood Type: B-, Storage Quantity: 3 units
+Blood Type: O+, Storage Quantity: 9 units
+Blood Type: O+ve, Storage Quantity: 2 units
+Blood Type: O-, Storage Quantity: 2 units
+
+Blood Bank Management System
+1. Add Donation
+2. Display Donors
+3. Display Blood Types and Storage Quantities
+4. Distribute Blood
+5. Logout
+6. Exit
+Blood Bank Management System
+1. Add Donation
+2. Display Donors
+3. Display Blood Types and Storage Quantities
+4. Distribute Blood
+5. Logout
+6. Exit
+Enter your choice: 4
+Enter Blood Type for Distribution: O+ve
+Enter Quantity to Distribute: 2 units
+Distributed 2 units of O+ve blood.
+
+Blood Bank Management System
+1. Add Donation
+2. Display Donors
+3. Display Blood Types and Storage Quantities
+4. Distribute Blood
+5. Logout
+6. Exit
+Enter your choice: Enter Blood Type for Distribution: Enter Quantity to Distribute: 
+6
+Blood type nits not found.
+
+Blood Bank Management System
+1. Add Donation
+2. Display Donors
+3. Display Blood Types and Storage Quantities
+4. Distribute Blood
+5. Logout
+6. Exit
+Enter your choice: 5
+Logged out successfully!
+Login
+Username: admin
+Password: 123
+Login successful!
+
+Blood Bank Management System
+1. Add Donation
+2. Display Donors
+3. Display Blood Types and Storage Quantities
+4. Distribute Blood
+5. Logout
+6. Exit
+Enter your choice: 6
+
+=== Code Execution Successful ===
